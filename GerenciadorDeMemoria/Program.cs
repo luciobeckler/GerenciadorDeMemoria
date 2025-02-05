@@ -32,7 +32,7 @@ if (Directory.Exists(pasta))
         // Converte as linhas restantes em objetos Pagina
         foreach (var item in PaginasString)
         {
-            if (string.IsNullOrWhiteSpace(item)) continue; // Ignora linhas vazias
+            if (string.IsNullOrWhiteSpace(item)) continue; 
 
             string[] partes = Regex.Replace(item, @"\s+", " ").Split(" "); // Normaliza os tipos de espaços, necessário pois podem haver espaços inquebráveis que devem ser substituidos por espaços normais.
 

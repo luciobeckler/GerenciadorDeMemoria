@@ -1,91 +1,88 @@
-﻿namespace GerenciadorDeMemoria
+﻿using System.Reflection.Metadata.Ecma335;
+
+namespace GerenciadorDeMemoria
 {
     public class GerenciadorMemoria
     {
-        private List<int> _molduras = new List<int>();
-        private int _memoria { get; set; }
+        public int _tamanhoMoldura { get; set; }
         private int _cicloRelogio;
-        int _contador = 0;
+        private List<Pagina> _molduras;
+        private int _contador;
 
-
-        public GerenciadorMemoria(int memoria, int ciclo)
+        public GerenciadorMemoria(int tamanhoMoldura, int cicloRelogio)
         {
-            _memoria = memoria;
-            _cicloRelogio = ciclo;
+            _tamanhoMoldura = tamanhoMoldura;
+            _molduras = new List<Pagina>(tamanhoMoldura);
+            _cicloRelogio = cicloRelogio;
+            _contador = 0;
         }
 
-        public int executaOTIMO(List<Pagina> paginas)
+        public int executaOTIMO(List<Pagina> paginasOriginais)
         {
-            InicializaMemoria(paginas);
+            int timer = 0;
+            int indexRemovido;
 
-            while (paginas.Count > 0)
+            while (paginasOriginais.Count > 0)
             {
-                bool isPaginaInMoldura = _molduras.Contains(paginas.First().Numero);
+                List<Pagina> paginasAtuais = paginasOriginais
+                    .Where(p => timer >= p.Chegada)
+                    .ToList();
 
-                if (isPaginaInMoldura)
-                    paginas.RemoveAt(0);
-                else
+                foreach (var paginaAtual in paginasAtuais)
                 {
-                    SubstituiPaginaNaMoldura(paginas);
-                    _contador++;
+                    indexRemovido = AjustaMolduraOtimoRetornaIndexParaRemover(paginaAtual, paginasOriginais);
+                    paginasOriginais.RemoveAt(indexRemovido);
                 }
-            }
 
+                timer++;
+            }
             return _contador;
         }
 
-        private void SubstituiPaginaNaMoldura(List<Pagina> paginas)
+        private int AjustaMolduraOtimoRetornaIndexParaRemover(Pagina paginaAtual, List<Pagina> paginasOriginais)
         {
-            int index = EncontraMoldura(paginas);
+            if (_molduras.Select(m => m.Numero).Contains(paginaAtual.Numero))
+            {
+                return paginasOriginais.IndexOf(paginaAtual);
+            }
 
-            _molduras[index] = paginas.First().Numero;
-            paginas.RemoveAt(0);
-        }
+            if (_molduras.Count < _tamanhoMoldura)
+            {
+                _molduras.Add(paginaAtual);
+                _contador++;
+                return paginasOriginais.IndexOf(paginaAtual);
+            }
 
-        private int EncontraMoldura(List<Pagina> paginas)
-        {
-            int indiceMaisDemorado = -1;
-            int maiorDistancia = -1;
+            int indexMaxDistanciaPaginas = -1;
+            int indexMaxDistanciaMoldura = -1;
 
             for (int i = 0; i < _molduras.Count; i++)
             {
-                int molduraAtual = _molduras[i];
+                var pagina = _molduras[i];
+                int proximaPosicao = paginasOriginais.FindIndex(pos => pos.Numero == pagina.Numero);
 
-                int proximaOcorrencia = paginas
-                    .Select((pagina, index) => new { pagina, index })
-                    .Where(x => x.pagina.Numero == molduraAtual)
-                    .Select(x => x.index)
-                    .DefaultIfEmpty(-1)
-                    .First();
-
-                if (proximaOcorrencia == -1)
+                if (proximaPosicao == -1)
                 {
-                    return i;
+                    _contador++;
+                    _molduras[i] = paginaAtual;
+                    return 0;
                 }
 
-                if (proximaOcorrencia > maiorDistancia)
+                if (proximaPosicao > indexMaxDistanciaPaginas)
                 {
-                    maiorDistancia = proximaOcorrencia;
-                    indiceMaisDemorado = i;
+                    indexMaxDistanciaPaginas = proximaPosicao;
+                    indexMaxDistanciaMoldura = i;
                 }
             }
 
-            return indiceMaisDemorado;
-        }
-
-        private void InicializaMemoria(List<Pagina> paginas)
-        {
-            while (_molduras.Count != _memoria)
-            {
-                _contador++;
-                _molduras.Add(paginas.First().Numero);
-                paginas.RemoveAt(0);
-            }
+            _contador++;
+            _molduras[indexMaxDistanciaMoldura] = paginaAtual;
+            return 0;
         }
 
         public int executaNRU(List<Pagina> paginas)
         {
-            throw new NotImplementedException();
+            return _contador;
         }
 
         public int executaRelogio(List<Pagina> paginas)
@@ -97,6 +94,11 @@
         {
             throw new NotImplementedException();
         }
+        
+
+
+      
+
     }
 
 }
