@@ -82,6 +82,7 @@ if (Directory.Exists(pasta))
 
     List<Pagina> CopiarListaPaginas(List<Pagina> original)
     {
-        return original.Select(pagina => new Pagina(pagina.Numero, pagina.Chegada, pagina.TipoAcesso)).ToList();
+        return original.Select(pagina => new Pagina(pagina)).ToList();
     }
+
 }

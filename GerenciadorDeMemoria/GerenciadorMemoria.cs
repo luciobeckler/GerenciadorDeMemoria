@@ -8,6 +8,7 @@ namespace GerenciadorDeMemoria
         private int _cicloRelogio;
         private List<Pagina> _molduras;
         private int _contador;
+        private int _ponteiro;
 
         public GerenciadorMemoria(int tamanhoMoldura, int cicloRelogio)
         {
@@ -19,8 +20,8 @@ namespace GerenciadorDeMemoria
 
         public int executaOTIMO(List<Pagina> paginasOriginais)
         {
+            ResetaGerenciador();
             int timer = 0;
-            int indexRemovido;
 
             while (paginasOriginais.Count > 0)
             {
@@ -30,8 +31,8 @@ namespace GerenciadorDeMemoria
 
                 foreach (var paginaAtual in paginasAtuais)
                 {
-                    indexRemovido = AjustaMolduraOtimoRetornaIndexParaRemover(paginaAtual, paginasOriginais);
-                    paginasOriginais.RemoveAt(indexRemovido);
+                    AjustaMolduraOTIMO(paginaAtual, paginasOriginais);
+                    paginasOriginais.RemoveAt(0);
                 }
 
                 timer++;
@@ -39,18 +40,130 @@ namespace GerenciadorDeMemoria
             return _contador;
         }
 
-        private int AjustaMolduraOtimoRetornaIndexParaRemover(Pagina paginaAtual, List<Pagina> paginasOriginais)
+        public int executaNRU(List<Pagina> paginasOriginais)
         {
-            if (_molduras.Select(m => m.Numero).Contains(paginaAtual.Numero))
+            ResetaGerenciador();
+            int timer = 0;
+
+            while (paginasOriginais.Count > 0)
             {
-                return paginasOriginais.IndexOf(paginaAtual);
+                List<Pagina> paginasAtuais = paginasOriginais
+                    .Where(p => timer >= p.Chegada)
+                    .ToList();
+
+                foreach (var paginaAtual in paginasAtuais)
+                {
+                    AjustaMolduraNRU(paginaAtual, timer);
+                    paginasOriginais.RemoveAt(0);
+                }
+
+                timer++;
+            }
+            return _contador;
+        }
+
+        public int executaRelogio(List<Pagina> paginasOriginais)
+        {
+            ResetaGerenciador();
+            int timer = 0;
+            _ponteiro = 0;
+
+            while(paginasOriginais.Count > 0)
+            {
+                List<Pagina> paginasAtuais = paginasOriginais
+                    .Where(p => timer >= p.Chegada)
+                    .ToList();
+
+                foreach (var paginaAtual in paginasAtuais)
+                {
+                    AjustaMolduraRELOGIO(paginaAtual, timer);
+                    paginasOriginais.RemoveAt(0);
+                }
+                
+                timer++;
             }
 
+            return _contador;
+        }
+
+        public int executaWSClock(List<Pagina> paginasOriginais)
+        {
+            ResetaGerenciador();
+            int timer = 0;
+
+            while (paginasOriginais.Count > 0)
+            {
+                List<Pagina> paginasAtuais = paginasOriginais
+                    .Where(p => timer >= p.Chegada)
+                    .ToList();
+
+                foreach (var paginaAtual in paginasAtuais)
+                {
+                    AjustaMolduraWSClock(paginaAtual, timer);
+                    paginasOriginais.RemoveAt(0);
+                }
+
+                timer++;
+            }
+
+            return _contador;
+        }
+
+        private void AjustaMolduraWSClock(Pagina paginaAtual, int timer)
+        {
+            foreach (var pagina in _molduras)
+            {
+                pagina.AtualizaBitR(timer, _cicloRelogio);
+            }
+
+            bool contemEspacoMoldura = _molduras.Count < _tamanhoMoldura;
+            if (contemEspacoMoldura)
+            {
+                _molduras.Add(paginaAtual);
+                _contador++;
+                return;
+            }
+
+            bool isPaginaAtualNaMoldura = _molduras.Any(p => p.Numero == paginaAtual.Numero);
+            if (isPaginaAtualNaMoldura)
+            {
+                int indexMoldura = _molduras.FindIndex(p => p.Numero == paginaAtual.Numero);
+                _molduras[indexMoldura] = paginaAtual;
+                return;
+            }
+
+            while (true)
+            {
+                var pagina = _molduras[_ponteiro];
+                bool tempoExpirado = (timer - pagina.Chegada) >= _cicloRelogio;
+
+                if (!pagina.R && tempoExpirado)
+                {
+                    _molduras[_ponteiro] = paginaAtual;
+                    _contador++;
+                    _ponteiro = (_ponteiro + 1) % _molduras.Count;
+                    return;
+                }
+                else
+                {
+                    pagina.R = false;
+                }
+
+                _ponteiro = (_ponteiro + 1) % _molduras.Count;
+            }
+        }
+        private void AjustaMolduraOTIMO(Pagina paginaAtual, List<Pagina> paginasOriginais)
+        {
             if (_molduras.Count < _tamanhoMoldura)
             {
                 _molduras.Add(paginaAtual);
                 _contador++;
-                return paginasOriginais.IndexOf(paginaAtual);
+                return;
+            }
+
+            if (_molduras.Select(m => m.Numero).Contains(paginaAtual.Numero))
+            {
+                return;
             }
 
             int indexMaxDistanciaPaginas = -1;
@@ -65,7 +178,7 @@ namespace GerenciadorDeMemoria
                 {
                     _contador++;
                     _molduras[i] = paginaAtual;
-                    return 0;
+                    return;
                 }
 
                 if (proximaPosicao > indexMaxDistanciaPaginas)
@@ -77,28 +190,91 @@ namespace GerenciadorDeMemoria
 
             _contador++;
             _molduras[indexMaxDistanciaMoldura] = paginaAtual;
-            return 0;
+            return;
         }
-
-        public int executaNRU(List<Pagina> paginas)
+        private void AjustaMolduraNRU(Pagina paginaAtual, int timer)
         {
-            return _contador;
-        }
+            foreach (var pagina in _molduras)
+            {
+                pagina.AtualizaBitR(timer, _cicloRelogio);
+            }
 
-        public int executaRelogio(List<Pagina> paginas)
+            bool contemEspacoMoldura = _molduras.Count < _tamanhoMoldura;
+            if (contemEspacoMoldura)
+            {
+                _molduras.Add(paginaAtual);
+                _contador++;
+
+                return;
+            }
+
+            bool isPaginaAtualNaMoldura = _molduras.Select(m => m.Numero).Contains(paginaAtual.Numero);
+            if (isPaginaAtualNaMoldura)
+            {
+                int indexMoldura = _molduras
+                    .IndexOf(_molduras
+                    .First(p => p.Numero == paginaAtual.Numero));
+
+                _molduras[indexMoldura] = paginaAtual;
+
+                return;
+            }
+
+            int indexParaRemover = SelecionaPaginaParaRemoverNRU();
+            if (indexParaRemover != -1)
+            {
+                _molduras[indexParaRemover] = paginaAtual;
+                _contador++;
+            }
+        }
+        private int SelecionaPaginaParaRemoverNRU()
         {
-            throw new NotImplementedException();
-        }
+            List<Pagina> paginasAgrupadasPorClasse = _molduras
+                .OrderBy(p => p.Classe)
+                .ToList();
 
-        public int executaWSClock(List<Pagina> paginas)
+            if (paginasAgrupadasPorClasse.Count > 0)
+            {
+                return _molduras.IndexOf(paginasAgrupadasPorClasse.First());
+            }
+
+            return -1;
+        }
+        private void AjustaMolduraRELOGIO(Pagina paginaAtual, int timer)
         {
-            throw new NotImplementedException();
+
+            foreach (var pagina in _molduras)
+            {
+                pagina.AtualizaBitR(timer, _cicloRelogio);
+            }
+
+            bool contemEspacoMoldura = _molduras.Count < _tamanhoMoldura;
+            if (contemEspacoMoldura)
+            {
+                _molduras.Add(paginaAtual);
+                _contador++;
+                return;
+            }
+
+            bool isPaginaAtualNaMoldura = _molduras.Select(m => m.Numero).Contains(paginaAtual.Numero);
+            if (isPaginaAtualNaMoldura)
+            {
+                int indexMoldura = _molduras.IndexOf(_molduras.First(p => p.Numero == paginaAtual.Numero));
+                _molduras[indexMoldura] = paginaAtual;
+
+                if (indexMoldura == _ponteiro)
+                    _ponteiro = (_ponteiro + 1) % _molduras.Count;
+                return;
+            }
+
+            _molduras[_ponteiro] = paginaAtual;
+            _ponteiro = (_ponteiro + 1) % _molduras.Count;
+            _contador++;
         }
-        
-
-
-      
-
+        private void ResetaGerenciador()
+        {
+            _contador = 0;
+            _molduras.Clear();
+        }
     }
-
 }
