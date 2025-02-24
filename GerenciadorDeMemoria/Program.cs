@@ -7,7 +7,7 @@ string pasta = "C:\\Users\\lucio\\OneDrive\\Documentos\\Estudo\\IFMG\\SistemasOp
 
 if (Directory.Exists(pasta))
 {
-    string[] files = Directory.GetFiles(pasta);
+    string[] files = Directory.GetFiles(pasta, "TESTE-*.txt");
 
     foreach (string file in files)
     {
@@ -49,21 +49,21 @@ if (Directory.Exists(pasta))
         List<Pagina> backupPaginas = CopiarListaPaginas(paginas);
 
         int resultadoOtimo = gerenciadorMemoria.executaOTIMO(CopiarListaPaginas(backupPaginas));
-        Console.WriteLine("Resultado ótimo: " + resultadoOtimo);
+        Console.WriteLine(resultadoOtimo);
 
         int resultadoNRU = gerenciadorMemoria.executaNRU(CopiarListaPaginas(backupPaginas));
-        Console.WriteLine("Resultado NRU: " + resultadoNRU);
+        Console.WriteLine(resultadoNRU);
 
         int resultadoRelogio = gerenciadorMemoria.executaRelogio(CopiarListaPaginas(backupPaginas));
-        Console.WriteLine("Resultado Relógio: " + resultadoRelogio);
+        Console.WriteLine(resultadoRelogio);
 
         int resultadoWSClock = gerenciadorMemoria.executaWSClock(CopiarListaPaginas(backupPaginas));
-        Console.WriteLine("Resultado WSClock: " + resultadoWSClock);
+        Console.WriteLine(resultadoWSClock);
 
         // Gera o nome do arquivo de saída
         string nomeArquivoSemExtensao = Path.GetFileNameWithoutExtension(file);
         string numero = nomeArquivoSemExtensao.Split("-")[1];
-        string caminhoArquivoResultado = $"{pasta}TESTE-{numero}-RESULTADO.txt";
+        string caminhoArquivoResultado = Path.Combine(pasta, $"TESTE-{numero}-RESULTADO.txt");
 
         // Cria o conteúdo do arquivo de saída
         StringBuilder sb = new StringBuilder();
